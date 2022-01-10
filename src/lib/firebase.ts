@@ -8,6 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Shop } from '../../types/shop';
 import { initialUser, User } from '../types/user';
 import Constants from "expo-constants";
+import { Review } from '../types/review';
 
 if(!firebase.apps.length) {
 // const firebaseConfig = {
@@ -31,7 +32,7 @@ export const getShops = async() => {
     // .where("place", "==", "品川")
     // .where("score", ">", 3)
     .get();
-    const shops = snapshot.docs.map(doc => doc.data() as Shop);
+    const shops = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as unknown as Shop));
     return shops;
 
   };
@@ -54,3 +55,12 @@ export const getShops = async() => {
       }as User
     }
   };
+
+  export const updateUser = async (userId: string, params: any) => {
+    await firebase.firestore().collection("users").doc(userId).update(params)
+  }
+
+  export const addReview = async (shopId:string,review: Review) => {
+    await firebase.firestore().collection("shops").doc(shopId)
+    .collection("reviews").add(review);
+  }

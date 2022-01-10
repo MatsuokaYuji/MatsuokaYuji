@@ -1,8 +1,9 @@
 import React, { useEffect, useState,useContext } from "react";
 import { StyleSheet, SafeAreaView, Text, View, Image} from "react-native";
-import { addReview } from "../lib/firebase";
+import { createReviewRef,uploadImage } from "../lib/firebase";
 import { pickImage } from "../lib/image-picker";
 import { UserContext } from "../contexts/userContext";
+import { getExtension } from "../utils/file";
 // components
 import { ShopDetail } from "../components/ShopDetail";
 import { IconButton } from "../components/IconButton";
@@ -26,7 +27,7 @@ export const CreateReviewScreen: React.FC<Props> = ({ navigation, route}: Props)
     const [text,setText] = useState<string>("");
     const [score,setScore] = useState<number>(3);
     const {user} = useContext(UserContext);
-    const [imageUri,setImageUri] =useState<string|undefined>("");
+    const [imageUri,setImageUri] =useState<string>("");
 
 
     useEffect(() => {
@@ -39,6 +40,19 @@ export const CreateReviewScreen: React.FC<Props> = ({ navigation, route}: Props)
     }, [shop]);
 
     const onSubmit = async () => {
+        // documentのID取得
+        console.log("aaa");
+        if(shop.id){
+            const reviewDocRef = await createReviewRef(shop.id);
+
+        
+        // const reviewDocRef = await createReviewRef(shop.id);
+        console.log("aaa");
+        const ext = getExtension(imageUri);
+        const storagePath = `reviews/${reviewDocRef.id}.${ext}`;
+        //画像をstorageにアップロード
+        const downloadUrl = await uploadImage(imageUri,storagePath);
+        // reviewドキュメントを作る
         const review = {
             user: {
                 name: user?.name,
@@ -50,15 +64,20 @@ export const CreateReviewScreen: React.FC<Props> = ({ navigation, route}: Props)
             },
             text,
             score,
+            imageUrl:downloadUrl,
             updatedAt: firebase.firestore.Timestamp.now(),
             createdAt: firebase.firestore.Timestamp.now(),
         } as Review;
-        await addReview(shop.id, review);
+        // await addReview(shop.id, review);
+        await reviewDocRef.set(review);
+    }
     };
 
     const onPickImage = async () => {
         const uri = await pickImage();
-        setImageUri(uri);
+        if (uri){
+            setImageUri(uri);
+        }
     }
 
     return (
